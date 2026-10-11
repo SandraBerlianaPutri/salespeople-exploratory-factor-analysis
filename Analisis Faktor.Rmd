@@ -1,0 +1,204 @@
+---
+title: "Project Analisis Faktor Teknik Peubah Ganda"
+author: Kelompok 7 - Sandra Berliana Putri	G1401221021
+date: "2024-10-21"
+output: html_document
+---
+
+#Packages
+```{r}
+library(readxl)
+library(psych)
+library(ggcorrplot)
+```
+
+#Data
+```{r}
+data_sales <- read_excel("C:\\Users\\ASUS\\Downloads\\Data selespeople.xlsx", sheet = "Sheet1")
+head(data_sales)
+data_sales <- data_sales[,-1]
+```
+
+#Standarisasi
+Akibat satuan dari tiap peubah berbeda (ada indeks dan skor) sehingga perlu dilakukan stan
+
+```{r}
+data_scale <- data.frame(scale(data_sales))
+data_scale
+```
+
+```{r}
+cov_scale<- cov(data_scale)
+cov_scale
+
+```
+
+```{r}
+ei <- eigen(cov_scale)
+ei
+```
+
+#Analisis Faktor
+##Eksplorasi Data : Korelasi Antar Peubah
+```{r}
+cor_sales <- cor(data_sales)
+ggcorrplot(cor_sales, type = "lower", lab = TRUE)
+```
+
+## Analisis Faktor
+```{r}
+fa_sales1 <- fa(data_sales, nfactors = 7, fm = "minres", rotate = "none")
+fa_sales1$Vaccounted
+```
+
+```{r}
+SS_loadings <- fa_sales1$Vaccounted[1,]
+number_of_factor <- seq_along(SS_loadings)
+plot(number_of_factor, SS_loadings, type = "b", main = "Scree Plot", pch = 16)
+```
+
+## Estimasi Factor Loading (2 Faktor)
+```{r}
+fa_sales_2 <- fa(data_scale, nfactors = 2, fm = "minres", rotate = "none")
+print(fa_sales_2$loadings, cut = 0)
+```
+
+```{r}
+fa_sales_2$communalities
+```
+
+### Tanpa data data x5
+```{r}
+fa_sales_21 <- fa(data_scale[,c(-5)], nfactors = 2, fm = "minres", rotate = "none")
+fa_sales_21$communalities
+```
+
+```{r}
+fa_sales_21$communalities
+```
+
+### Tanpa data data x6
+```{r}
+fa_sales_22 <- fa(data_scale[,c(-6)], nfactors = 2, fm = "minres", rotate = "none")
+fa_sales_22$communalities
+```
+
+### Tanpa data data x5 dan x6
+```{r}
+fa_sales_23 <- fa(data_scale[,c(-5,-6)], nfactors = 2, fm = "minres", rotate = "none")
+fa_sales_23$communalities
+```
+```{r}
+fa_sales_23 <- fa(data_sales[,c(-5,-6)], nfactors = 2, fm = "minres", rotate = "none")
+fa_sales_23$communalities
+```
+
+## Estimasi Factor Loading (2 Faktor) tanpa data data x5 dan x6
+
+```{r}
+data_sales <- data_sales[,c(-5,-6)]
+data_scale <- data_scale[,c(-5,-6)]
+```
+
+```{r}
+fa_sales_2_ <- fa(data_sales, nfactors = 2, fm = "minres", rotate = "none")
+print(fa_sales_2_$loadings, cut = 0)
+```
+```{r}
+fa_sales_2_ <- fa(data_scale, nfactors = 2, fm = "minres", rotate = "none")
+print(fa_sales_2_$loadings, cut = 0)
+```
+
+## Rotasi Varimax 
+
+```{r}
+fa_sales_2_vm <- fa(data_sales, nfactors = 2, fm = "minres", rotate = "varimax")
+print(fa_sales_2_vm$loadings, cut = 0)
+```
+
+## Cut 0.6
+```{r}
+print(fa_sales_2_vm$loadings, cut = 0.6)
+```
+
+## Diagram
+```{r}
+fa.diagram(fa_sales_2_vm)
+```
+
+# Mencari Skor Faktor dan RMS Overall
+```{r}
+cov_sales1 <- cov(data_sales)
+cov_sales1
+```
+
+```{r}
+kor_sales1 <- cov2cor(cov_sales1)
+kor_sales1
+```
+
+```{r}
+cov_scale1<- cov(data_scale)
+ei1 <- eigen(cov_scale1)
+ei1
+```
+
+```{r}
+l1 <- sqrt(ei1$values[1]) * ei1$vectors[,1]
+l2 <- sqrt(ei1$values[2]) * ei1$vectors[,2]
+
+l <- cbind(l1,l2)
+l
+```
+```{r}
+t(l) %*% solve(kor_sales1)
+```
+## Skor Faktor
+
+```{r}
+Skor_faktor <- t(t(l) %*% solve(kor_sales1) %*% t(data_scale))
+colnames(Skor_faktor) <- c("Skor Faktor 1", "Skor Faktor 2")
+Skor_faktor
+```
+
+
+
+## RMS Overall Sesuai EXCEl ASPRAK
+```{r}
+r <- kor_sales1
+ll <- l %*% t(l)
+w <- matrix(0,ncol = 5, nrow = 5)
+diag(w) <- diag(r)-diag(ll)
+r
+ll
+w
+
+```
+
+```{r}
+res <- r-(ll+w)
+res
+```
+
+```{r}
+res^2
+```
+```{r}
+sum(res^2)
+```
+```{r}
+sum(w)
+```
+
+
+```{r}
+ressumsq <- sum(res^2)
+ressumsq
+```
+
+### RMS Overall   
+```{r}
+rms_overall1 <- sqrt((1/(5*(5-1)))*ressumsq)
+rms_overall1
+```
+Nilai RMS overall = 0.02037508 yang lebih kecil dari 0.05 mengindikasikan bahwa model diperoleh cukup baik.
